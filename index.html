@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Время и Добавление 37 Минут</title>
+</head>
+<body>
+    <div>
+        <label for="timeInput">Введите время:</label>
+        <input type="time" id="timeInput">
+        <button onclick="addTime()">Добавить 37 минут</button>
+        <p id="timeResult"></p>
+    </div>
+
+    <div>
+        <h3>Обновления времени:</h3>
+        <ul id="timeList"></ul>
+    </div>
+    <div id="previousRequests">
+        <h3>Предыдущие запросы</h3>
+        <ul id="requestList"></ul>
+    </div>
+
+    <script>
+        const database = firebase.database();
+
+        function addTime() {
+            const timeInput = document.getElementById('timeInput').value;
+            if (!timeInput) {
+                alert("Пожалуйста, введите время!");
+                return;
+            }
+
+            // Разделение времени на часы и минуты
+            let [hours, minutes] = timeInput.split(":").map(Number);
+            minutes += 37;  // Добавляем 37 минут
+
+            // Обработка времени, если минут больше 60
+            if (minutes >= 60) {
+                hours += Math.floor(minutes / 60);
+                minutes = minutes % 60;
+            }
+
+            const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+            // Сохранение результата в Firebase Realtime Database
+            const newTimeRef = database.ref('times').push();
+            newTimeRef.set({
+                originalTime: timeInput,
+                addedTime: formattedTime,
+                timestamp: Date.now()  // Для сортировки
+            });
+
+            // Отображение результата на странице
+            document.getElementById('timeResult').textContent = `Время с добавленными 37 минутами: ${formattedTime}`;
+        }
+
+        // Подписка на обновления времени из базы данных
+        database.ref('times').on('child_added', function(snapshot) {
+            const data = snapshot.val();
+            const listItem = document.createElement('li');
+            listItem.textContent = `${data.originalTime} -> ${data.addedTime}`;
+            document.getElementById('timeList').appendChild(listItem);
+        });
+    </script>
+</body>
+</html>
